@@ -43,7 +43,17 @@ struct StreakForgeApp: App {
         )
 
         do {
-            return try ModelContainer(for: schema, configurations: [configuration])
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+
+            // Seed canonical content (challenge templates + badges) before
+            // any view's `@Query` fires. Doing this inline in the container
+            // factory — rather than from `RootView.task` — guarantees the
+            // first frame already sees the seeded rows, avoiding a
+            // flash-of-empty-state on first launch. The seeder is
+            // idempotent (id-keyed), so it's safe to run on every launch.
+            SeedDataService().seedIfNeeded(in: ModelContext(container))
+
+            return container
         } catch {
             // Persistence is non-optional for this app — a daily-challenge
             // tracker that can't remember yesterday is functionally broken.
