@@ -2,31 +2,23 @@
 //  StreakForgeApp.swift
 //  StreakForge
 //
-//  Created by Angel Ivanov on 27.04.26.
+//  App entry point. Owns the `WindowGroup` and (from Step 2 onward) the
+//  shared `ModelContainer` for SwiftData persistence.
 //
 
 import SwiftUI
-import SwiftData
 
+/// App entry point.
+///
+/// The `ModelContainer` setup that Xcode's template installs has been
+/// removed deliberately — there are no `@Model` types yet, and configuring
+/// a container with an empty schema is wasted work. Step 2 reintroduces
+/// `.modelContainer(...)` once the four real models exist.
 @main
 struct StreakForgeApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
-        .modelContainer(sharedModelContainer)
     }
 }
