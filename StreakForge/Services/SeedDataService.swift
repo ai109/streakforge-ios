@@ -85,8 +85,17 @@ struct SeedDataService {
             return Set(rows.map(\.id))
         }()
 
-        for definition in Self.badgeDefinitions where !existingIDs.contains(definition.id) {
-            context.insert(definition.makeModel())
+        // Drive badge seeding from `BadgeKind.allCases` — that enum is the
+        // single source of truth for badge identity, name, description, and
+        // icon. Keeping the list here in lock-step with the evaluator was
+        // exactly the kind of duplication that would silently rot.
+        for kind in BadgeKind.allCases where !existingIDs.contains(kind.id) {
+            context.insert(Badge(
+                id: kind.id,
+                name: kind.displayName,
+                description: kind.description,
+                iconName: kind.iconName
+            ))
         }
     }
 }
@@ -121,19 +130,9 @@ extension SeedDataService {
         }
     }
 
-    /// Pure-data description of one badge.
-    fileprivate struct BadgeDefinition {
-        let id: UUID
-        let name: String
-        let description: String
-        let iconName: String
-
-        func makeModel() -> Badge {
-            // Badges are always seeded as locked (unlockedAt == nil).
-            // BadgeService later sets the timestamp when criteria are met.
-            Badge(id: id, name: name, description: description, iconName: iconName)
-        }
-    }
+    // (Badge metadata used to live here as a parallel `BadgeDefinition`
+    // list. Step 4 moved that responsibility to `BadgeKind` so the seeder
+    // and the evaluator can't drift apart.)
 
     // MARK: UUID literal helper
     //
@@ -143,12 +142,11 @@ extension SeedDataService {
     // very first launch (immediately surfaced in development). Re-generating
     // them at runtime would defeat the whole point of stable IDs.
     //
-    // Naming scheme:
-    //   * `00000001-...-NNNNNNNNNNNN` for templates (last segment = 1..30 in hex)
-    //   * `00000002-...-NNNNNNNNNNNN` for badges    (last segment = 1..10 in hex)
-    // The version nibble (`4` at position 13) and variant nibble (`8` at
-    // position 17) make these spec-conformant UUIDs even though they're
-    // hand-written.
+    // Naming scheme: `00000001-...-NNNNNNNNNNNN` for templates (last segment
+    // = 1..30 in hex). The version nibble (`4` at position 13) and variant
+    // nibble (`8` at position 17) make these spec-conformant UUIDs even
+    // though they're hand-written. (Badge UUIDs use the `00000002-...`
+    // prefix and live on `BadgeKind`.)
 
     fileprivate static let templateDefinitions: [TemplateDefinition] = [
 
@@ -341,73 +339,4 @@ extension SeedDataService {
         )
     ]
 
-    fileprivate static let badgeDefinitions: [BadgeDefinition] = [
-
-        // The required milestone badges from the spec — completion count
-        // and streak length. We use SF Symbols' numbered circles for the
-        // count badges so they're self-explanatory at a glance.
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000001")!,
-            name: "First Step",
-            description: "Complete your very first challenge.",
-            iconName: "flag.checkered"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000002")!,
-            name: "3-Day Streak",
-            description: "Complete at least one challenge three days in a row.",
-            iconName: "flame"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000003")!,
-            name: "7-Day Streak",
-            description: "A whole week of consecutive completions.",
-            iconName: "flame.fill"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000004")!,
-            name: "10 Completed",
-            description: "Complete a total of 10 challenges.",
-            iconName: "10.circle.fill"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000005")!,
-            name: "25 Completed",
-            description: "Complete a total of 25 challenges.",
-            iconName: "25.circle.fill"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000006")!,
-            name: "50 Completed",
-            description: "Complete a total of 50 challenges.",
-            iconName: "50.circle.fill"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000007")!,
-            name: "Night Owl",
-            description: "Complete a challenge after 10pm.",
-            iconName: "moon.stars.fill"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000008")!,
-            name: "Early Bird",
-            description: "Complete a challenge before 7am.",
-            iconName: "sunrise.fill"
-        ),
-        // The two extras (spec says "at least 8") give the Badges screen
-        // some category/calendar diversity and exercise more of the
-        // BadgeService evaluation logic in tests.
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-000000000009")!,
-            name: "Weekend Warrior",
-            description: "Complete at least one challenge on both Saturday and Sunday of the same week.",
-            iconName: "calendar.badge.checkmark"
-        ),
-        .init(
-            id: UUID(uuidString: "00000002-0000-4000-8000-00000000000A")!,
-            name: "Category Specialist",
-            description: "Complete 10 challenges in a single category.",
-            iconName: "star.fill"
-        )
-    ]
 }
