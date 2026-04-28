@@ -187,6 +187,24 @@ struct ProgressService {
         try? context.save()
     }
 
+    /// Resets the daily swap budget if the calendar day has changed since
+    /// the last reset. Called by `ChallengeService.swap` (so a swap in a
+    /// stale state behaves correctly) and by `TodayViewModel.bootstrap`
+    /// (so the UI's "1 swap remaining" counter rolls over before any
+    /// action is taken).
+    ///
+    /// Pulling this into a single helper means the rule "midnight rolls
+    /// the budget" is enforced in exactly one place — no chance of
+    /// `swap` and the UI disagreeing about whether a swap is available.
+    func resetSwapBudgetIfNeeded(in context: ModelContext) {
+        let today = Calendar.current.startOfDay(for: now())
+        let progress = current(in: context)
+        guard progress.swapsResetDate != today else { return }
+        progress.swapsUsedToday = 0
+        progress.swapsResetDate = today
+        try? context.save()
+    }
+
     // MARK: Reset
 
     /// Wipes the user's progress: deletes every `DailyChallenge`, resets

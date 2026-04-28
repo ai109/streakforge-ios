@@ -186,17 +186,12 @@ struct ChallengeService {
             return .notPending
         }
 
-        let today = Calendar.current.startOfDay(for: now())
-        let progress = ProgressService(now: now).current(in: context)
-
-        // Roll the swap budget over if we've crossed midnight since the
-        // last reset. Storing the date (not just relying on a scheduled
-        // task) keeps this correct even if the app stayed closed across
-        // midnight — see `UserProgress.swapsResetDate`.
-        if progress.swapsResetDate != today {
-            progress.swapsUsedToday = 0
-            progress.swapsResetDate = today
-        }
+        let progressService = ProgressService(now: now)
+        // Defer the midnight-rollover rule to ProgressService so the UI
+        // and the swap action can't disagree about whether a swap is
+        // available. (See ProgressService.resetSwapBudgetIfNeeded.)
+        progressService.resetSwapBudgetIfNeeded(in: context)
+        let progress = progressService.current(in: context)
 
         guard progress.swapsUsedToday < 1 else {
             return .budgetExhausted
