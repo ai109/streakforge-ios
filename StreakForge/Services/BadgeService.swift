@@ -75,25 +75,31 @@ enum BadgeEvaluator {
             unlocked.insert(.earlyBird)
         }
 
-        // Weekend Warrior: at least one Saturday AND at least one Sunday
-        // completion in the *same ISO week*. We group by `(year-for-week,
-        // weekOfYear)` rather than calendar week-of-month because the
-        // ISO-week pair is what makes "Saturday and Sunday of the same
-        // weekend" unambiguous — calendar week-of-year alone resets across
-        // year boundaries and would split a New Year's weekend in half.
-        let weekendByISOWeek = Dictionary(grouping: snapshot.completions) { c -> String in
-            let year = calendar.component(.yearForWeekOfYear, from: c.completedAt)
-            let week = calendar.component(.weekOfYear, from: c.completedAt)
-            return "\(year)-\(week)"
-        }
-        for (_, weekCompletions) in weekendByISOWeek {
-            // `.weekday` returns 1 for Sunday and 7 for Saturday in the
-            // Gregorian calendar. We hardcode those rather than using
-            // `firstWeekday` because the badge name names a specific pair
-            // of days, not "the first and last day of the user's week".
-            let hasSat = weekCompletions.contains { calendar.component(.weekday, from: $0.completedAt) == 7 }
-            let hasSun = weekCompletions.contains { calendar.component(.weekday, from: $0.completedAt) == 1 }
-            if hasSat && hasSun {
+        // Weekend Warrior: at least one Saturday completion paired with a
+        // Sunday completion *the following day* (Sat → Sat+1 = Sun).
+        //
+        // We deliberately don't group by ISO week here. Calendar week
+        // grouping is locale-sensitive — the default Gregorian calendar
+        // starts weeks on Sunday, so a Sat-then-Sun pair sits in two
+        // different "weeks" and would never satisfy "same week". The
+        // badge's intent is "you did a challenge on a Saturday and the
+        // following Sunday" — a fact about adjacent calendar days that's
+        // independent of any week-numbering convention.
+        let saturdayDays: Set<Date> = Set(
+            snapshot.completions
+                .filter { calendar.component(.weekday, from: $0.completedAt) == 7 }
+                .map { calendar.startOfDay(for: $0.completedAt) }
+        )
+        let sundayDays: Set<Date> = Set(
+            snapshot.completions
+                .filter { calendar.component(.weekday, from: $0.completedAt) == 1 }
+                .map { calendar.startOfDay(for: $0.completedAt) }
+        )
+        for sat in saturdayDays {
+            // Force-unwrap is safe: adding 1 day to a normalized
+            // start-of-day cannot fail in any sane calendar.
+            let nextDay = calendar.date(byAdding: .day, value: 1, to: sat)!
+            if sundayDays.contains(nextDay) {
                 unlocked.insert(.weekendWarrior)
                 break
             }

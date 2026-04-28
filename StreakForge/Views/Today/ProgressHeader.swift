@@ -100,6 +100,10 @@ private struct StatPill: View {
                 Text(value)
                     .font(AppTypography.numericInline)
                     .foregroundStyle(.white)
+                    // Stable identifier for the happy-path UI test —
+                    // both XP and best-streak pills carry one so tests
+                    // can target either; the label disambiguates.
+                    .accessibilityIdentifier("statPillValue.\(label)")
                 Text(label)
                     .font(AppTypography.captionSmall)
                     .foregroundStyle(.white.opacity(0.8))
