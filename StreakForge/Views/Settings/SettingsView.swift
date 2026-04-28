@@ -22,6 +22,10 @@ struct SettingsView: View {
 
     @State private var viewModel = SettingsViewModel()
     @State private var showingResetConfirm = false
+    /// Bumped after the destructive reset confirms — drives the warning
+    /// haptic via `.sensoryFeedback`. `Date` rather than `Int` so the
+    /// trigger is monotonically unique and inspectable in the debugger.
+    @State private var lastResetAt: Date?
 
     private var progress: UserProgress? { allProgress.first }
 
@@ -54,11 +58,15 @@ struct SettingsView: View {
             .alert("Reset progress?", isPresented: $showingResetConfirm) {
                 Button("Reset", role: .destructive) {
                     viewModel.resetProgress(in: modelContext)
+                    lastResetAt = .now
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This deletes all your daily challenges, resets your XP and streak, and re-locks every badge. Your reminder time stays the same. This can't be undone.")
             }
+            // Warning haptic on actual reset (not on cancel) — confirms
+            // to the user that the destructive action went through.
+            .sensoryFeedback(.warning, trigger: lastResetAt)
         }
     }
 

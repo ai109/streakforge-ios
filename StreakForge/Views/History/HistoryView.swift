@@ -126,6 +126,11 @@ struct HistoryView: View {
             .background(AppColors.background.ignoresSafeArea())
             .navigationTitle("History")
             .toolbar { statusFilterToolbar }
+            // Selection haptic on filter changes — light tap, fires
+            // automatically on every change because the trigger value
+            // (the filter itself) is what's changing.
+            .sensoryFeedback(.selection, trigger: categoryFilter)
+            .sensoryFeedback(.selection, trigger: statusFilter)
         }
     }
 

@@ -88,6 +88,9 @@ struct BadgesView: View {
                     selectedBadge = nil
                 }
             }
+            // Soft tap when a tile is tapped (sheet opens). The trigger
+            // changes when `selectedBadge` becomes non-nil.
+            .sensoryFeedback(.impact(weight: .light), trigger: selectedBadge?.id)
         }
     }
 
